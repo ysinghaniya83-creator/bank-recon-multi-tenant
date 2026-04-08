@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: bank-reconciliation-api
+    runtime: python
+    region: singapore          # closest to Indian users; change if needed
+    plan: free
+    rootDir: backend           # relative to repo root
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false            # enter manually in Render dashboard
+      - key: SUPABASE_SERVICE_KEY
+        sync: false            # Service Role key — never commit to git!
+      - key: PYTHON_VERSION
+        value: "3.11"
