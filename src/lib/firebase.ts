@@ -3,12 +3,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAJZQhhjIB4fr3f8LATvsh6FiubQIapS3k",
-  authDomain: "bank-recon-saas-multi-tenant.firebaseapp.com",
-  projectId: "bank-recon-saas-multi-tenant",
-  storageBucket: "bank-recon-saas-multi-tenant.firebasestorage.app",
-  messagingSenderId: "358770199333",
-  appId: "1:358770199333:web:f3f6a938f583389373e8cc"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
