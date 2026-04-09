@@ -37,7 +37,7 @@ function NavItem({ to, label, icon }: { to: string; label: string; icon: React.R
   );
 }
 
-export default function MasterAdminApp() {
+export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: () => void }) {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -72,6 +72,9 @@ export default function MasterAdminApp() {
           <div style={S.headerTitle}>Master Admin Console</div>
           <div style={S.headerRight}>
             <span style={S.email}>{currentUser?.email}</span>
+            {onSwitchToApp && (
+              <button onClick={onSwitchToApp} style={{ padding: '0.4rem 0.9rem', background: '#1e3a5f', color: '#93c5fd', border: '1px solid #1d4ed8', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}>Switch to App</button>
+            )}
             <button onClick={handleSignOut} style={S.signOutBtn}>Sign Out</button>
           </div>
         </div>

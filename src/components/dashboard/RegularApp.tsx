@@ -27,7 +27,7 @@ const NAV: { id: Page; label: string; icon: string; adminOnly?: boolean }[] = [
 
 export const ENTITY_COLORS = ['#2563eb', '#059669', '#7c3aed', '#ea580c', '#0891b2', '#db2777'];
 
-export default function RegularApp() {
+export default function RegularApp({ onSwitchToMaster }: { onSwitchToMaster?: () => void }) {
   const { appUser, signOut } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [orgName, setOrgName] = useState<string>('');
@@ -49,6 +49,15 @@ export default function RegularApp() {
   }, [appUser?.orgId]);
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {onSwitchToMaster && (
+        <div style={{ background: '#7c3aed', color: 'white', padding: '0.45rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', flexShrink: 0 }}>
+          <span>&#128081; You are viewing the regular app as Master Admin</span>
+          <button onClick={onSwitchToMaster} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500 }}>
+            &#8592; Back to Admin Console
+          </button>
+        </div>
+      )}
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9', fontFamily: 'system-ui, sans-serif' }}>
       <aside style={{ width: '200px', flexShrink: 0, background: '#111827', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -99,6 +108,7 @@ export default function RegularApp() {
           {page === 'settings'  && <SettingsPage orgId={appUser!.orgId!} />}
         </div>
       </main>
+    </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LoadingScreen from './components/auth/LoadingScreen';
@@ -9,21 +10,27 @@ import RegularApp from './components/dashboard/RegularApp';
 
 function AppRoutes() {
   const { currentUser, appUser, isMasterAdmin, loading } = useAuth();
+  const [viewRegularApp, setViewRegularApp] = useState(false);
 
   if (loading) return <LoadingScreen />;
 
   if (!currentUser) return <LoginScreen />;
 
-  if (isMasterAdmin) {
+  if (isMasterAdmin && !viewRegularApp) {
     return (
       <Routes>
-        <Route path="/master/*" element={<MasterAdminApp />} />
+        <Route path="/master/*" element={<MasterAdminApp onSwitchToApp={() => setViewRegularApp(true)} />} />
         <Route path="*" element={<Navigate to="/master" replace />} />
       </Routes>
     );
   }
 
   if (!appUser) return <LoadingScreen />;
+
+  // Master admin viewing regular app
+  if (isMasterAdmin && viewRegularApp) {
+    return <RegularApp onSwitchToMaster={() => setViewRegularApp(false)} />;
+  }
 
   // No org yet → enter company invite code
   if (!appUser.orgId) return <CompanyCodeScreen />;
