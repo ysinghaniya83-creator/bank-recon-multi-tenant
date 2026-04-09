@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Routes, Route, NavLink } from 'react-router-dom';
 import TenantsList from './TenantsList';
@@ -37,9 +40,25 @@ function NavItem({ to, label, icon }: { to: string; label: string; icon: React.R
   );
 }
 
-export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: () => void }) {
+export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: (orgId: string) => void }) {
   const { currentUser, signOut } = useAuth();
   const navigate = useNavigate();
+  const [showPicker, setShowPicker] = useState(false);
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+
+  const openPicker = async () => {
+    setShowPicker(true);
+    setLoadingOrgs(true);
+    try {
+      const snap = await getDocs(collection(db, 'organizations'));
+      setOrgs(snap.docs.map(d => ({ id: d.id, name: (d.data() as { name: string }).name || d.id })));
+    } catch (e) {
+      console.error('Failed to load orgs:', e);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -47,6 +66,7 @@ export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: () =
   };
 
   return (
+    <>
     <div style={S.wrap}>
       <div style={S.sidebar}>
         <div style={S.sidebarHeader}>
@@ -73,7 +93,7 @@ export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: () =
           <div style={S.headerRight}>
             <span style={S.email}>{currentUser?.email}</span>
             {onSwitchToApp && (
-              <button onClick={onSwitchToApp} style={{ padding: '0.4rem 0.9rem', background: '#1e3a5f', color: '#93c5fd', border: '1px solid #1d4ed8', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}>Switch to App</button>
+              <button onClick={openPicker} style={{ padding: '0.4rem 0.9rem', background: '#1e3a5f', color: '#93c5fd', border: '1px solid #1d4ed8', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}>Switch to App</button>
             )}
             <button onClick={handleSignOut} style={S.signOutBtn}>Sign Out</button>
           </div>
@@ -88,5 +108,39 @@ export default function MasterAdminApp({ onSwitchToApp }: { onSwitchToApp?: () =
         </div>
       </div>
     </div>
+
+    {/* Tenant picker modal */}
+    {showPicker && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '1.5rem', width: '380px', maxWidth: '90vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ color: 'white', fontWeight: 700, fontSize: '1rem' }}>Select a Tenant</div>
+              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '2px' }}>Choose which organisation to view</div>
+            </div>
+            <button onClick={() => setShowPicker(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>✕</button>
+          </div>
+          <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {loadingOrgs && <div style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>Loading tenants…</div>}
+            {!loadingOrgs && orgs.length === 0 && <div style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>No tenants found.</div>}
+            {orgs.map(org => (
+              <button key={org.id} onClick={() => { setShowPicker(false); onSwitchToApp!(org.id); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#3b82f6')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#334155')}
+              >
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>
+                  {org.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ color: 'white', fontWeight: 600, fontSize: '0.875rem' }}>{org.name}</div>
+                  <div style={{ color: '#475569', fontSize: '0.72rem', marginTop: '1px' }}>{org.id}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

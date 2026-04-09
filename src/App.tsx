@@ -10,16 +10,16 @@ import RegularApp from './components/dashboard/RegularApp';
 
 function AppRoutes() {
   const { currentUser, appUser, isMasterAdmin, loading } = useAuth();
-  const [viewRegularApp, setViewRegularApp] = useState(false);
+  const [masterOrgId, setMasterOrgId] = useState<string | null>(null);
 
   if (loading) return <LoadingScreen />;
 
   if (!currentUser) return <LoginScreen />;
 
-  if (isMasterAdmin && !viewRegularApp) {
+  if (isMasterAdmin && !masterOrgId) {
     return (
       <Routes>
-        <Route path="/master/*" element={<MasterAdminApp onSwitchToApp={() => setViewRegularApp(true)} />} />
+        <Route path="/master/*" element={<MasterAdminApp onSwitchToApp={(orgId) => setMasterOrgId(orgId)} />} />
         <Route path="*" element={<Navigate to="/master" replace />} />
       </Routes>
     );
@@ -27,9 +27,9 @@ function AppRoutes() {
 
   if (!appUser) return <LoadingScreen />;
 
-  // Master admin viewing regular app
-  if (isMasterAdmin && viewRegularApp) {
-    return <RegularApp onSwitchToMaster={() => setViewRegularApp(false)} />;
+  // Master admin viewing a tenant's regular app
+  if (isMasterAdmin && masterOrgId) {
+    return <RegularApp overrideOrgId={masterOrgId} onSwitchToMaster={() => setMasterOrgId(null)} />;
   }
 
   // No org yet → enter company invite code
