@@ -41,16 +41,12 @@ async function ensureUserDocExists(user: User): Promise<AppUser | null> {
   const ref = doc(db, 'users', user.uid);
   
   try {
-    console.log('[Auth] Checking user doc for:', user.email);
-    
     const snap = await getDoc(ref);
     if (snap.exists()) {
-      console.log('[Auth] User doc found');
       return snap.data() as AppUser;
     }
     
     // New user: create doc
-    console.log('[Auth] Creating new user doc for:', user.email);
     const newUser: AppUser = {
       uid: user.uid,
       email: user.email || '',
@@ -65,8 +61,6 @@ async function ensureUserDocExists(user: User): Promise<AppUser | null> {
     };
     
     await setDoc(ref, newUser);
-    console.log('[Auth] User doc created successfully');
-    
     return newUser;
   } catch (err) {
     console.error('[Auth] Error in ensureUserDocExists:', err);
@@ -82,25 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Main auth state listener
   useEffect(() => {
-    console.log('[Auth] Setting up auth listener');
-    
     const unsub = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          console.log('[Auth] User signed in:', user.email);
           const appData = await ensureUserDocExists(user);
-          
           setCurrentUser(user);
           setAppUser(appData);
           setIsMasterAdmin(user.email === MASTER_ADMIN_EMAIL);
-          
-          console.log('[Auth] Auth state updated:', {
-            email: user.email,
-            isMaster: user.email === MASTER_ADMIN_EMAIL,
-            hasAppData: !!appData,
-          });
         } else {
-          console.log('[Auth] User signed out');
           setCurrentUser(null);
           setAppUser(null);
           setIsMasterAdmin(false);
@@ -112,18 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => {
-      console.log('[Auth] Cleaning up auth listener');
-      unsub();
-    };
+    return () => unsub();
   }, []);
 
   const signIn = async () => {
     try {
-      console.log('[Auth] Starting sign in');
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      console.log('[Auth] Sign in complete');
     } catch (err) {
       console.error('[Auth] Sign in error:', err);
       throw err;
@@ -132,12 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('[Auth] Signing out');
       await firebaseSignOut(auth);
       setCurrentUser(null);
       setAppUser(null);
       setIsMasterAdmin(false);
-      console.log('[Auth] Sign out complete');
     } catch (err) {
       console.error('[Auth] Sign out error:', err);
       throw err;
@@ -146,7 +122,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     if (currentUser) {
-      console.log('[Auth] Refreshing user data');
       const appData = await ensureUserDocExists(currentUser);
       setAppUser(appData);
     }
