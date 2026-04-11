@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -23,10 +23,24 @@ export default function CompanyCodeScreen() {
         return;
       }
 
-      const { orgId } = codeDoc.data() as { orgId: string; orgName: string };
+      const { orgId, adminSet } = codeDoc.data() as { orgId: string; orgName: string; adminSet?: boolean };
 
-      // Mark user as pending for this org
-      await updateDoc(doc(db, 'users', currentUser.uid), { orgId, role: 'pending' });
+      // First joiner (adminSet === false) becomes admin atomically
+      if (adminSet === false) {
+        await runTransaction(db, async (tx) => {
+          const codeRef = doc(db, 'orgCodes', trimmed);
+          const freshCode = await tx.get(codeRef);
+          // Double-check inside transaction — if someone else claimed it first, fall back to pending
+          const role = freshCode.data()?.adminSet === false ? 'admin' : 'pending';
+          if (role === 'admin') {
+            tx.update(codeRef, { adminSet: true });
+          }
+          tx.update(doc(db, 'users', currentUser!.uid), { orgId, role });
+        });
+      } else {
+        // Subsequent users go through normal approval flow
+        await updateDoc(doc(db, 'users', currentUser!.uid), { orgId, role: 'pending' });
+      }
 
       // Reload user state — App.tsx will now show PendingApprovalScreen
       await refreshUser();

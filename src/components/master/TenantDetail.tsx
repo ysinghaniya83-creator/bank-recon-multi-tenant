@@ -77,7 +77,7 @@ export default function TenantDetail() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       const newCode = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
       // Save code mapping (readable by all authenticated users)
-      await setDoc(doc(db, 'orgCodes', newCode), { orgId, orgName: org.name });
+      await setDoc(doc(db, 'orgCodes', newCode), { orgId, orgName: org.name, adminSet: false });
       // Update org doc
       await updateDoc(doc(db, 'organizations', orgId), { inviteCode: newCode });
       setOrg(o => o ? { ...o, inviteCode: newCode } : o);

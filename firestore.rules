@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isMasterAdmin() {
+      return request.auth != null && 
+             request.auth.token.email == 'ysinghaniya83@gmail.com';
+    }
+
+    function userOrgId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId;
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Users collection: read/write own doc, or admin reads their org users, or master admin reads all
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || 
+                     isMasterAdmin() || 
+                     (request.auth != null && userRole() == 'admin' && userOrgId() == resource.data.orgId);
+      allow write: if request.auth.uid == uid || 
+                      isMasterAdmin() ||
+                      (request.auth != null && userRole() == 'admin' && userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Organizations: master admin reads/writes, regular users can read their own org
+    match /organizations/{orgId} {
+      allow read: if isMasterAdmin() || 
+                     (request.auth != null && userOrgId() == orgId);
+      allow write: if isMasterAdmin();
+    }
+
+    // Invite codes: any authenticated user can read (for verification), only master admin writes
+    match /orgCodes/{code} {
+      allow read: if request.auth != null;
+      allow write: if isMasterAdmin();
+      // Allow first joiner to atomically claim admin slot (adminSet: false → true only, no other fields change)
+      allow update: if request.auth != null &&
+                       resource.data.adminSet == false &&
+                       request.resource.data.adminSet == true &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['adminSet']);
+    }
+
+    // Bank accounts: must match orgId
+    match /bankAccounts/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && 
+                       request.resource.data.orgId == userOrgId();
+    }
+
+    // Transactions: must match orgId
+    match /transactions/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && 
+                       request.resource.data.orgId == userOrgId();
+    }
+
+    // Entities: must match orgId
+    match /entities/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && 
+                       request.resource.data.orgId == userOrgId();
+    }
+
+    // Categories: must match orgId
+    match /categories/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && 
+                       request.resource.data.orgId == userOrgId();
+    }
+
+    // User logs: must match orgId
+    match /userLogs/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null;
+    }
+
+    // EMI Loans: must match orgId
+    match /emiLoans/{doc} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == resource.data.orgId);
+      allow create: if request.auth != null && 
+                       request.resource.data.orgId == userOrgId();
+    }
+
+    // Org settings: users can read/write their own org settings
+    match /orgSettings/{orgId} {
+      allow read, write: if request.auth != null && 
+                            (isMasterAdmin() || userOrgId() == orgId);
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
